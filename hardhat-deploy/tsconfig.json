@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "es5",
     "module": "commonjs",
-    "lib": ["es2020"],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
     "strict": true,
-    "rootDirs": ["./src", "./test"],
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist"
   },
-  "exclude": ["dist", "node_modules"],
-  "include": ["./test", "./src", "types.ts"]
+  "include": [
+    "hardhat.config.ts",
+    "./scripts",
+    "./deploy",
+    "./test",
+    "typechain/**/*"
+  ]
 }

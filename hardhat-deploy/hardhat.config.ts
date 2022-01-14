@@ -1,132 +1,103 @@
-import {HardhatUserConfig, internalTask, task} from 'hardhat/config';
-import {
-  TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT,
-  TASK_COMPILE,
-} from 'hardhat/builtin-tasks/task-names';
-import fs from 'fs-extra';
-import path from 'path';
-import {Artifact, BuildInfo} from 'hardhat/types';
-import murmur128 from 'murmur-128';
-
-function addIfNotPresent(array: string[], value: string) {
-  if (array.indexOf(value) === -1) {
-    array.push(value);
-  }
-}
-
-function setupExtraSolcSettings(settings: {
-  metadata?: {useLiteralContent?: boolean};
-  outputSelection: {[key: string]: {[key: string]: string[]}};
-}): void {
-  settings.metadata = settings.metadata || {};
-  settings.metadata.useLiteralContent = true;
-
-  if (settings.outputSelection === undefined) {
-    settings.outputSelection = {
-      '*': {
-        '*': [],
-        '': [],
-      },
-    };
-  }
-  if (settings.outputSelection['*'] === undefined) {
-    settings.outputSelection['*'] = {
-      '*': [],
-      '': [],
-    };
-  }
-  if (settings.outputSelection['*']['*'] === undefined) {
-    settings.outputSelection['*']['*'] = [];
-  }
-  if (settings.outputSelection['*'][''] === undefined) {
-    settings.outputSelection['*'][''] = [];
-  }
-
-  addIfNotPresent(settings.outputSelection['*']['*'], 'abi');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'evm.bytecode');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'evm.deployedBytecode');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'metadata');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'devdoc');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'userdoc');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'storageLayout');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'evm.methodIdentifiers');
-  addIfNotPresent(settings.outputSelection['*']['*'], 'evm.gasEstimates');
-  // addIfNotPresent(settings.outputSelection["*"][""], "ir");
-  // addIfNotPresent(settings.outputSelection["*"][""], "irOptimized");
-  // addIfNotPresent(settings.outputSelection["*"][""], "ast");
-}
-
-internalTask(TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT).setAction(
-  async (_, __, runSuper) => {
-    const input = await runSuper();
-    setupExtraSolcSettings(input.settings);
-
-    return input;
-  }
-);
-
-task(TASK_COMPILE).setAction(async (args, hre, runSuper) => {
-  await runSuper(args);
-  const extendedArtifactFolderpath = 'extendedArtifacts';
-  fs.emptyDirSync(extendedArtifactFolderpath);
-  const artifactPaths = await hre.artifacts.getArtifactPaths();
-  for (const artifactPath of artifactPaths) {
-    const artifact: Artifact = await fs.readJSON(artifactPath);
-    const artifactName = path.basename(artifactPath, '.json');
-    const artifactDBGPath = path.join(
-      path.dirname(artifactPath),
-      artifactName + '.dbg.json'
-    );
-    const artifactDBG = await fs.readJSON(artifactDBGPath);
-    const buildinfoPath = path.join(
-      path.dirname(artifactDBGPath),
-      artifactDBG.buildInfo
-    );
-    const buildInfo: BuildInfo = await fs.readJSON(buildinfoPath);
-    const output =
-      buildInfo.output.contracts[artifact.sourceName][artifactName];
-
-    // TODO decide on ExtendedArtifact vs Artifact vs Deployment type
-    // save space by not duplicating bytecodes
-    if (output.evm?.bytecode?.object) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (output.evm.bytecode.object as any) = undefined;
-    }
-    if (output.evm?.deployedBytecode?.object) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (output.evm.deployedBytecode.object as any) = undefined;
-    }
-    // -----------------------------------------
-
-    const solcInput = JSON.stringify(buildInfo.input, null, '  ');
-    const solcInputHash = Buffer.from(murmur128(solcInput)).toString('hex');
-    const extendedArtifact = {
-      ...artifact,
-      ...output,
-      solcInput,
-      solcInputHash,
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (extendedArtifact._format as any) = undefined;
-    fs.writeFileSync(
-      path.join(extendedArtifactFolderpath, artifactName + '.json'),
-      JSON.stringify(extendedArtifact, null, '  ')
-    );
-  }
-});
+import 'dotenv/config';
+import {HardhatUserConfig} from 'hardhat/types';
+import 'hardhat-deploy';
+import '@nomiclabs/hardhat-ethers';
+import 'hardhat-gas-reporter';
+import '@typechain/hardhat';
+import 'solidity-coverage';
+import 'hardhat-deploy-tenderly';
+import {node_url, accounts, addForkConfiguration} from './utils/network';
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: '0.7.6',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 999999,
+    compilers: [
+      {
+        version: '0.8.9',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 2000,
+          },
+        },
       },
-    },
+    ],
   },
+  namedAccounts: {
+    deployer: 0,
+    simpleERC20Beneficiary: 1,
+  },
+  networks: addForkConfiguration({
+    hardhat: {
+      initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
+    },
+    localhost: {
+      url: node_url('localhost'),
+      accounts: accounts(),
+    },
+    staging: {
+      url: node_url('rinkeby'),
+      accounts: accounts('rinkeby'),
+    },
+    production: {
+      url: node_url('mainnet'),
+      accounts: accounts('mainnet'),
+    },
+    mainnet: {
+      url: node_url('mainnet'),
+      accounts: accounts('mainnet'),
+    },
+    rinkeby: {
+      url: node_url('rinkeby'),
+      accounts: accounts('rinkeby'),
+    },
+    kovan: {
+      url: node_url('kovan'),
+      accounts: accounts('kovan'),
+    },
+    goerli: {
+      url: node_url('goerli'),
+      accounts: accounts('goerli'),
+    },
+    mumbai: {
+        url: node_url('mumbai'),
+        accounts: accounts(),
+      },
+      matic: {
+        url: node_url('matic'),
+        accounts: accounts(),
+      },
+  }),
   paths: {
-    sources: 'solc_0.7',
+    sources: 'src',
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 100,
+    enabled: process.env.REPORT_GAS ? true : false,
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    maxMethodDiff: 10,
+  },
+  typechain: {
+    outDir: 'typechain',
+    target: 'ethers-v5',
+  },
+  mocha: {
+    timeout: 0,
+  },
+  external: process.env.HARDHAT_FORK
+    ? {
+        deployments: {
+          // process.env.HARDHAT_FORK will specify the network that the fork is made from.
+          // these lines allow it to fetch the deployments from the network being forked from both for node and deploy task
+          hardhat: ['deployments/' + process.env.HARDHAT_FORK],
+          localhost: ['deployments/' + process.env.HARDHAT_FORK],
+        },
+      }
+    : undefined,
+
+  tenderly: {
+    project: 'project',
+    username: process.env.TENDERLY_USERNAME as string,
   },
 };
 

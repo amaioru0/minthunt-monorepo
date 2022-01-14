@@ -1,17 +1,21 @@
 import {
-    SIGNERPRIVATE
+    SIGNERPRIVATE,
+    MORALIS_KEY
 } from "react-native-dotenv";
 
 const devEnvVariables = {
-    SIGNERPRIVATE
+    SIGNERPRIVATE,
+    MORALIS_KEY
 }
 
 const prodEnvVariables = {
-    SIGNERPRIVATE
+    SIGNERPRIVATE,
+    MORALIS_KEY
 }
 
 export interface EnvsInterface {
-    SIGNERPRIVATE
+    SIGNERPRIVATE,
+    MORALIS_KEY
 }
 
 // import envs, { EnvsInterface } from "./config/envs";

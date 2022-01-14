@@ -8,4 +8,5 @@ function copyFromDefault(p) {
     }
   }
 }
-['.env', '.vscode/settings.json'].map(copyFromDefault);
+
+['.vscode/settings.json', '.vscode/extensions.json', '.vscode/launch.json'].map(copyFromDefault);
