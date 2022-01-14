@@ -1,0 +1,222 @@
+import * as React from "react"
+import { StyleProp, TextStyle, View, ViewStyle, Text, TouchableOpacity, TouchableHighlight, Image, FlatList, ActivityIndicator} from "react-native"
+import { observer } from "mobx-react-lite"
+import { color, typography } from "../../theme"
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { iOSUIKit } from 'react-native-typography';
+import { RefreshControl } from 'react-native';
+import { gql, useMutation, useLazyQuery, useQuery } from '@apollo/client';
+import { useWalletConnect } from '@walletconnect/react-native-dapp';
+import { ethers } from "ethers";
+import LeafSVG from './leaf-svg';
+import { Nft } from '../../components/nft/nft';
+import { FlatGrid } from 'react-native-super-grid';
+import { useStores } from "../../models";
+import provider from "../../services/provider";
+import base64 from 'react-native-base64'
+  // import { EthInput } from "..";
+  import { useNavigation } from '@react-navigation/native';
+import { getMoralis } from '../../services/moralis';
+import { isBase64 } from '../../utils/isBase64';
+import axios from 'axios';
+
+import { SelectedNetwork } from "..";
+
+const CONTAINER: ViewStyle = {
+  flex: 1,
+  alignItems: 'center',
+}
+
+const LEAF_STYLE: ViewStyle = {
+  position: 'absolute',
+  top: verticalScale(-200),
+}
+
+const CONTAINER_WALLET: ViewStyle = {
+  alignItems: "center",
+  backgroundColor: "white",
+  height: verticalScale(450),
+  width: scale(380),
+  borderRadius: 16
+}
+
+const BOTTOM: ViewStyle = {
+  flex: 1,
+  justifyContent: 'flex-end',
+}
+
+export interface WalletProps {
+  /**
+   * An optional style override useful for padding & margin.
+   */
+  style?: StyleProp<ViewStyle>
+  walletStore?: any
+  generateWallet?: any
+  signer?: any
+}
+
+const GET_TREASURE_CONTRACTS = gql`
+  query getTreasureContracts($network: String!) {
+    getTreasureContracts(network: $network) {
+      address
+      name
+      abi
+    }
+  }
+`;
+
+
+
+
+/**
+ * Describe your component here
+ */
+export const Wallet = observer(function Wallet(props: WalletProps) {
+  // const { walletStore, generateWallet } = props;
+  const connector = useWalletConnect();
+  const { settingsStore } = useStores()
+  const navigation = useNavigation();
+
+
+  const { data: dataContracts, loading: loadingContracts } = useQuery(GET_TREASURE_CONTRACTS, {
+    variables: {
+      network: settingsStore.selectedNetwork,
+  },
+  });
+
+  const [nftsData, setNftsData] = React.useState([])
+  const [loading, setLoading] = React.useState(false);
+  
+
+  const getTreasureChestNFTs = async () => {
+    
+    setLoading(true)
+    const nfts = [];
+    const otherNfts = []
+    const Moralis = await getMoralis(settingsStore.selectedNetwork);
+    const options = { chain: settingsStore.selectedNetwork, address: connector.accounts[0] };
+    const testnetNFTs = await Moralis.Web3API.account.getNFTs(options);
+
+    console.log(testnetNFTs)
+
+    for(let x = 0; x < dataContracts.getTreasureContracts.length; x++) {
+      testnetNFTs.result.map(async (nft) => {
+        if(nft.token_address.toLowerCase() == dataContracts.getTreasureContracts[x].address.toLowerCase()) {
+          let contractJSON = dataContracts.getTreasureContracts[x];
+          let abi = JSON.parse(contractJSON.abi)
+          nfts.push({imageDecoded: "", abi: abi, ...nft, })
+          let tokenUri;
+          let imageUri;
+          if(nft.token_uri !== undefined) {
+            if(nft.contract_type === "ERC721") {
+              const contract = new ethers.Contract(nft.token_address, abi, provider);
+              const uri = await contract.tokenURI(0)
+              nft.token_uri = uri;
+            }
+            
+          if(isBase64(nft.token_uri.substring(29))) {
+            let jsonManifestString = atob(nft.token_uri.substring(29))
+            tokenUri = JSON.parse(jsonManifestString);
+            if(tokenUri.image && isBase64(tokenUri.image.slice(26))) {
+              imageUri = base64.decode(tokenUri.image.slice(26))
+            } else if (tokenUri.image && tokenUri.image.startsWith("ipfs://")) {
+              imageUri = `https://ipfs.moralis.io:2053/ipfs/${tokenUri.image.slice(6)}`
+            } else if (tokenUri.image) {
+              imageUri = tokenUri.image;
+            }
+          } else {
+            const resUri = await axios.get(nft.token_uri)
+            tokenUri = resUri.data
+            console.log(tokenUri)
+            // console.log(nft)
+            if(tokenUri.image && isBase64(tokenUri.image.slice(26))) {
+              imageUri = base64.decode(tokenUri.image.slice(26))
+            } else if (tokenUri.image && tokenUri.image.startsWith("ipfs://")) {
+             imageUri = `https://ipfs.io/ipfs/${tokenUri.image.slice(7)}`
+             console.log(imageUri)
+            } else if(tokenUri.image) {
+              imageUri = tokenUri.image;
+            }
+          }
+        }
+      // // let contract = new ethers.Contract(contractJSON.address, abi.abi, provider);
+      // nfts.push({imageDecoded: imageUri, abi: abi, ...nft, ...tokenUri })
+        } else {
+          otherNfts.push({...nft})
+        }
+      })
+  } 
+  console.log(nfts)
+  // setNftsData(nfts)
+setLoading(false)
+} 
+
+  React.useEffect(() => {
+    if(!loadingContracts && dataContracts) {
+      console.log(dataContracts)
+      getTreasureChestNFTs();
+    }
+  }, [dataContracts])
+
+
+  return (
+    <View style={CONTAINER}>
+      <SelectedNetwork />
+      <LeafSVG style={LEAF_STYLE}  />
+         <Text style={{...iOSUIKit.largeTitleEmphasizedObject, color: color.palette.white, fontWeight: "900", fontSize: 26, marginLeft: moderateScale(-140), marginTop: moderateScale(30)}}>{`Your Collection`}</Text>
+         <Text style={{...iOSUIKit.subheadEmphasized.valueOf , color: color.palette.white,  marginTop: moderateScale(1)}} selectable={true}>{connector.accounts[0]}</Text>
+
+      <View style={BOTTOM}>
+      <View style={CONTAINER_WALLET}>
+      {loading && <ActivityIndicator size="large" color="#00ff00" />}
+      {!loading && nftsData.length == 0 && <Text style={{marginTop: scale(100)}}>No NFTs found yet 😔</Text>}
+      {!loading && nftsData.length == 0 && <TouchableOpacity style={{marginTop: scale(100)}} onPress={async () => {
+        await getTreasureChestNFTs();
+      }}><Text style={{ color: color.palette.deepPurple}}>refresh</Text></TouchableOpacity>}
+<Text style={{ color: color.palette.deepPurple}}>{JSON.stringify(nftsData)}</Text>
+
+           {/* <EthInput callback={() => {
+            console.log("x")
+          }}/> */}
+
+      {!loading && 
+        <FlatGrid
+        itemDimension={170}
+        data={nftsData}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={getTreasureChestNFTs} />}
+        style={{
+          marginTop: 10,
+          flex: 1,
+        }}
+        // staticDimension={300}
+        // fixed
+        spacing={10}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+          onPress={() => {
+            /* 1. Navigate to the Details route with params */
+            navigation.navigate('nftFullScreen', {
+              nft: item,
+              // contract: contractsInstances[item.contractIndex]
+            });
+          }}
+          >
+             {/* <Nft nft={item} /> */}
+             <Text>{item.name}</Text>
+          </TouchableOpacity>
+        )}
+      />
+      }
+
+      {/* {!loading && <View>
+        {treasureChestNFTs.map((nft) => {
+          return <Nft contract={contract} nft={nft}/>
+        })}
+        </View>
+      } */}
+      </View>
+      </View>
+
+    </View>
+  )
+})

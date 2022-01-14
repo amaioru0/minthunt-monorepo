@@ -1,0 +1,118 @@
+import * as React from "react"
+import { StyleProp, TextStyle, View, ViewStyle, StyleSheet, Text, Image } from "react-native"
+import { observer } from "mobx-react-lite"
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { color, typography, spacing } from "../../theme"
+import { iOSUIKit } from 'react-native-typography'
+import { stringToColor, hexToRgb } from '../../utils/stringToColor';
+import { Button } from 'react-native-elements';
+import { ethers } from "ethers";
+
+const CONTAINER: ViewStyle = {
+  // justifyContent: "center",
+  flexDirection: "column",
+  width: "100%",
+  margin: 5
+}
+
+const PLAYER: ViewStyle = {
+  backgroundColor: 'white',
+  height: moderateScale(60),
+  width: 180,
+  marginTop: moderateScale(20),
+  marginLeft: moderateScale(10),
+  borderRadius: moderateScale(20),
+  flexDirection: 'row',
+  borderColor: '#E3E5E8',
+  borderWidth: 0.9,
+}
+
+const EGY: ViewStyle = {
+  position: 'absolute',
+  right: 0,
+  backgroundColor: 'white',
+  height: moderateScale(30),
+  width: moderateScale(130),
+  marginTop: moderateScale(20),
+  marginRight: moderateScale(20),
+  borderRadius: moderateScale(20),
+  flexDirection: 'row',
+  borderColor: '#E3E5E8',
+  borderWidth: 0.9,
+}
+
+const BUTTON: ViewStyle = {
+
+}
+
+export interface NftProps {
+  /**
+   * An optional style override useful for padding & margin.
+   */
+  style?: StyleProp<ViewStyle>
+  contract?: any,
+  nft?: any
+}
+
+/**
+ * Describe your component here
+ */
+export const Nft = observer(function Nft(props: NftProps) {
+
+    const { contract, nft } = props;
+    const [jsonData, setJsonData] = React.useState({
+        name: "",
+        image: "",
+        description: "",
+        attributes: [],
+        external_url: ""
+    });
+
+    const hex = stringToColor(`${jsonData.name}sdadsjk`);
+    const rgba = hexToRgb(hex);
+
+    const ipfsFetch = async () => {
+        const response = await fetch(`http://ipfs.io/ipfs/${nft.uri.slice(7)}`)
+        const resJSON = await response.json()
+        setJsonData(resJSON)
+        console.log(resJSON)
+    }
+
+    React.useEffect(() => {
+        ipfsFetch();   
+    }, [])
+
+    // const transactionOptions = {
+    //     gasLimit: 600000000000,
+    //     gasPrice: ethers.utils.parseUnits('1.0', 'gwei'),
+    // }
+    
+
+  return (
+
+    <View style={CONTAINER}>
+    <View style={{ 
+        flexDirection: "row",
+        width: moderateScale(150),
+        height: moderateScale(150),
+        backgroundColor: `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a})`,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
+     }}>
+         <Image source={{ uri: `http://ipfs.io/ipfs/${jsonData.image.slice(7)}`}} style = {{height: 120, width: 120,  margin: 5 }} />
+    </View>
+    <View style={{flexDirection:'row'}}>
+        <Text style={{...iOSUIKit.largeTitleEmphasizedObject, color: hex, fontSize: moderateScale(15), lineHeight: 38, marginLeft: moderateScale(3)}}>{jsonData.name}</Text>
+        {jsonData.attributes[0] && <Text style={{...iOSUIKit.largeTitleEmphasizedObject, color: color.palette.lightPurple, fontSize: moderateScale(15), lineHeight: 38, marginLeft: moderateScale(3) }}>({jsonData.attributes[0].value})</Text>}
+     </View>
+     <Button
+     title="Burn 🔥"
+     onPress={async () => {
+         const tx = await contract.burn(nft.id)
+         console.log(tx)
+     }}
+    />
+    </View>
+  )
+})

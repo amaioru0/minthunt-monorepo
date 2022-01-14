@@ -1,0 +1,354 @@
+import * as React from "react"
+import { StyleProp, TextStyle, View, ViewStyle, TouchableOpacity } from "react-native"
+import { observer } from "mobx-react-lite"
+import { color, typography } from "../../theme"
+import { Text } from "../"
+import { flatten } from "ramda"
+import { useWalletConnect } from '@walletconnect/react-native-dapp';
+import { gql, useMutation, useLazyQuery, useQuery } from '@apollo/client';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { Nft } from '../../components/nft/nft';
+import { useStores } from "../../models";
+import { useNavigation } from '@react-navigation/native';
+import { ethers } from "ethers";
+import  { web3, getEthersProvider } from "../../services/provider"
+import { SelectedNetwork } from "..";
+import { iOSUIKit } from 'react-native-typography';
+import { stringToColor, hexToRgb } from '../../utils/stringToColor';
+import Image from 'react-native-remote-svg';
+import DragAndDrop from "volkeno-react-native-drag-drop";
+
+const GET_ENERGY_EXCHANGER = gql`
+  query getEnergyExchangerContract($network: String!) {
+    getEnergyExchangerContract(network: $network) {
+      address
+      name
+      abi
+    }
+  }
+`;
+
+const CONTAINER: ViewStyle = {
+  flex: 1,
+  alignItems: 'center',
+}
+
+const CONTAINER_WALLET: ViewStyle = {
+  alignItems: "center",
+  backgroundColor: "white",
+  height: verticalScale(550),
+  width: scale(380),
+  borderRadius: 16
+}
+
+const CRAFTING_CONTAINER: ViewStyle = {
+  flexDirection: "row"
+}
+
+
+const BOTTOM: ViewStyle = {
+  flex: 1,
+  justifyContent: 'flex-end',
+}
+
+const TEXT: TextStyle = {
+  fontFamily: typography.primary,
+  fontSize: 14,
+  color: color.primary,
+}
+
+interface TX {
+  data: any;
+  from: string;
+  gas: string;
+  gasPrice: string;
+  nonce: string;
+  to: any;
+  value: string;
+}
+
+export interface CraftingProps {
+  /**
+   * An optional style override useful for padding & margin.
+   */
+  style?: StyleProp<ViewStyle>
+  nftsData?: any 
+  getTreasureChestNFTs?: any
+  setNftsData?: any
+  dataContracts?: any
+}
+
+
+
+const NftItem = (item) => {
+  // const hex = stringToColor(`${item.item.name}pl`);
+  // const rgba = hexToRgb(hex);
+  const [imageUri, setImageUri] = React.useState(item.item.imageDecoded.startsWith("http") ? item.item.imageDecoded : `data:image/svg+xml;utf8,${item.item.imageDecoded}`);
+React.useEffect(() => {
+}, [item])
+  return(
+    <View style={{ 
+      flexDirection: "row",
+      width: moderateScale(150),
+      height: moderateScale(150),
+      // backgroundColor: `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a})`,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+   }}>
+         <View style={{ position: "absolute", top: -10, right: 5}}>
+         <Text style={{...iOSUIKit.largeTitleEmphasizedObject, color: "black", fontSize: moderateScale(10), lineHeight: 38, marginLeft: moderateScale(3)}}>qty: {item.item.amount}</Text>
+         </View>
+             <Image
+        source={{
+          uri: imageUri,
+        }}
+        style={{ width: 138, height: 138, margin: 5, alignSelf: "center" }}
+       />
+     </View>
+  )
+}
+/**
+ * Describe your component here
+ */
+export const Crafting = observer(function Crafting(props: CraftingProps) {
+  const { style, nftsData, getTreasureChestNFTs, setNftsData, dataContracts} = props
+  const styles = flatten([CONTAINER, style])
+  const connector = useWalletConnect();
+  const { settingsStore } = useStores()
+  const navigation = useNavigation();
+
+  const { data: dataContract, loading: loadingContract } = useQuery(GET_ENERGY_EXCHANGER, {
+    variables: {
+      network: settingsStore.selectedNetwork,
+  },
+  });
+
+
+const exchangeEgy = async () => {
+  if(dataContract && !loadingContract) {
+    console.log(dataContract)
+    const provider = await getEthersProvider(settingsStore.selectedNetwork);
+    const energyExchangerObject = dataContract.getEnergyExchangerContract;
+    const abi = JSON.parse(energyExchangerObject.abi)
+    const energyExchangerContract = new web3.eth.Contract(abi, energyExchangerObject.address);
+
+    try {
+      const gasLimitHex = ethers.utils.hexlify(700000);    
+
+      const gasPrice = await provider.getGasPrice()
+      const gasPriceHex = ethers.utils.hexlify(gasPrice.toNumber());
+      // const feeData = await provider.getFeeData()
+      const nonce = await provider.getTransactionCount(connector.accounts[0]);
+      const tx = {
+        data: energyExchangerContract.methods.exchange(1).encodeABI(),
+        from: connector.accounts[0],
+        gas: gasLimitHex,
+        gasPrice: gasPriceHex,
+        nonce: `0x${nonce}`,
+        to: energyExchangerObject.address,
+        value: '0x00',
+      }
+      connector.sendTransaction(tx).then(async (res) => {
+        console.log(`transcation done`)
+
+      }).catch(async (err) => {
+        console.log(`transcation fail`)
+      })
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}
+
+ const [zones, setZones] = React.useState([
+    {
+      id: 1,
+      text: "Test zone 1",
+      items: [{ id: 5, text: "Test existing item 5" }],
+    },
+    {
+      id: 2,
+      text: "Test zone 2",
+    },
+  ]);
+const [items, setItems] = React.useState([
+  { id: 1, text: "Test item 1" },
+  { id: 2, text: "Test item 2" },
+  { id: 3, text: "Test item 3" },
+  { id: 4, text: "Test item 4" },
+]);
+
+  return (
+    <View style={CONTAINER}>
+      <SelectedNetwork />
+      <Text style={{...iOSUIKit.largeTitleEmphasizedObject, color: color.palette.white, fontWeight: "900", fontSize: 28, marginLeft: moderateScale(-140), marginTop: moderateScale(30)}}>{`EnergyExchanger`}</Text>
+
+      <View style={BOTTOM}>
+      <View style={CONTAINER_WALLET}>
+
+      <View style={CRAFTING_CONTAINER}>
+
+      <DragAndDrop
+      style={{
+            flex: 1,
+
+      }}
+      contentContainerStyle={{
+            padding: 20,
+    paddingTop: 40,
+      }}
+      itemKeyExtractor={(item) => item.id}
+      zoneKeyExtractor={(zone) => zone.id}
+      zones={zones}
+      items={items}
+      itemsContainerStyle={{
+            flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+      }}
+      zonesContainerStyle={{
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+      }}
+      onMaj={(zones, items) => {
+        setItems(items);
+        setZones(zones);
+      }}
+      itemsInZoneStyle={{
+    width: "100%",
+      }}
+      renderItem={(item) => {
+        return (
+          <View style={{
+               borderColor: "#F39200",
+                borderWidth: 1,
+                width: "47%",
+                alignItems: "center",
+                justifyContent: "center",
+                marginVertical: 5,
+                backgroundColor: "#F5F5F5",
+                padding: 10,
+          }}>
+            <Text style={{
+            color: "#011F3B",
+            fontWeight: "700",
+            textAlign: "center",
+            }}>{item.text}</Text>
+          </View>
+        );
+      }}
+      renderZone={(zone, children, hover) => {
+        return (
+        //   <View style={{ 
+        //     flexDirection: "row",
+        //     width: moderateScale(150),
+        //     height: moderateScale(150),
+        //     backgroundColor: `rgb(28, 187, 241)`,
+        //     borderRadius: 12,
+        //     alignItems: "center",
+        //     justifyContent: "center",
+        //     margin: 10
+        //  }}>
+        <View
+            style={{
+    borderColor: "#F39200",
+    borderWidth: 1,
+    width: "47%",
+    padding: 15,
+    minHeight: 130,
+    marginVertical: 15,
+              backgroundColor: hover ? "#E2E2E2" : "#FFF",
+            }}
+          >
+            <Text style={{
+    position: "absolute",
+    opacity: 0.2,
+    zIndex: 0,
+    alignSelf: "center",
+    top: "50%",
+            }}>{zone.text}</Text>
+            {children}
+           </View>
+        );
+      }}
+    />
+      </View>
+
+      {!loadingContract && 
+      <TouchableOpacity onPress={exchangeEgy}>
+      <Text style={{...iOSUIKit.largeTitleEmphasizedObject, color: color.palette.black, fontSize: 20}}>Exchange</Text>
+      </TouchableOpacity>
+
+      }
+      
+      {/* {nftsData.map((item) => {
+        if(item.name === "Black Hole") {
+        return <Draggable shouldReverse x={50} y={300}><NftItem item={item} /></Draggable>
+        } else if(item.name === "EGY Flare") {
+          return <Draggable shouldReverse x={240} y={300}><NftItem item={item} /></Draggable>
+        }
+      })} */}
+
+      </View>
+      </View>
+
+    </View>
+  )
+})
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   itemsInZoneStyle: {
+//     width: "100%",
+//   },
+//   contentContainerStyle: {
+//     padding: 20,
+//     paddingTop: 40,
+//   },
+//   itemsContainerStyle: {
+//     flexDirection: "row",
+//     flexWrap: "wrap",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//   },
+//   zonesContainerStyle: {
+//     flexDirection: "row",
+//     flexWrap: "wrap",
+//     justifyContent: "space-between",
+//   },
+//   dragItemStyle: {
+//     borderColor: "#F39200",
+//     borderWidth: 1,
+//     width: "47%",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     marginVertical: 5,
+//     backgroundColor: "#F5F5F5",
+//     padding: 10,
+//   },
+//   dragItemTextStyle: {
+//     color: "#011F3B",
+//     fontWeight: "700",
+//     textAlign: "center",
+//   },
+//   dragZoneStyle: {
+//     borderColor: "#F39200",
+//     borderWidth: 1,
+//     width: "47%",
+//     padding: 15,
+//     minHeight: 130,
+//     marginVertical: 15,
+//   },
+//   dragZoneTextStyle: {
+//     position: "absolute",
+//     opacity: 0.2,
+//     zIndex: 0,
+//     alignSelf: "center",
+//     top: "50%",
+//   },
+// });

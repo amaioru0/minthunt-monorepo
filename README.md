@@ -1,0 +1,2 @@
+# minthunt-monorepo
+MintHunt.io
