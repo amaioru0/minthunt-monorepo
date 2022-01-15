@@ -171,8 +171,8 @@ const [mintedChestMutation, { data: dataMinted, loading: loadingMinted, error: e
   React.useEffect(() => {
     const mintTreasure = async () => {
     const locationX = {
-      lat: Math.trunc(location.latitude),
-      lng: Math.trunc(location.longitude)
+      lat: Math.trunc(Math.abs(location.latitude)),
+      lng: Math.trunc(Math.abs(location.longitude))
     }
     const randomNumber= Math.floor(Math.random() * 90000) + 10000;
     const signature = await signLocation(locationX.lat, locationX.lng, randomNumber)
