@@ -14,6 +14,7 @@ import { iOSUIKit } from 'react-native-typography'
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 import { convertUtf8ToHex } from '@walletconnect/utils';
+import { MyMaps } from "../../components"
 
 import TreasureHuntLogo from '../../../assets/images/logo.png';
 import { SelectedNetwork } from "../../components";
@@ -115,8 +116,13 @@ const connectWallet = React.useCallback(() => {
       </View>
 
       <View style={CONTAINER}>
-
-
+      <View style={{flex: 2, paddingTop: 20}}>
+      {connector.connected && settingsStore.selectedNetwork !== "" && <MyMaps/ >}
+      </View>
+      <View style={{flex: 1}}>
+      {connector.connected && settingsStore.selectedNetwork !== "" && userStore.treasureMaps[userStore.getSelectedMap] && <Text style={{...iOSUIKit.calloutObject, color: "#000000", fontSize: moderateScale(15), lineHeight: 38, marginLeft: moderateScale(3)}}>Name: {userStore.treasureMaps[userStore.getSelectedMap].name}</Text>}
+      {connector.connected && settingsStore.selectedNetwork !== "" && userStore.treasureMaps[userStore.getSelectedMap] && <Text style={{...iOSUIKit.calloutObject, color: "#000000", fontSize: moderateScale(15), lineHeight: 38, marginLeft: moderateScale(3)}}>Range: {userStore.treasureMaps[userStore.getSelectedMap].range}</Text>}
+      </View>
 
       {connector.connected && settingsStore.selectedNetwork == "" && <Text>Please select a supported network</Text>}
       {/* <Tooltip popover={<Text>Info here</Text>}>
@@ -132,6 +138,7 @@ const connectWallet = React.useCallback(() => {
       </View>
       </View>
       {/* <Text preset="header" text="Explorer v1" /> */}
+      <Text style={{...iOSUIKit.calloutObject, color: "#000000", fontSize: moderateScale(15), lineHeight: 38, marginLeft: moderateScale(3)}}>{userStore.getSelectedMap}</Text>
 
     </Screen>
   )

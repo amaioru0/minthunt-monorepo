@@ -22,7 +22,7 @@ export const getEthersProvider = async (network) => {
     let provider;
     switch(network) {
         case "matic-testnet":
-           provider = new ethers.providers.JsonRpcProvider("https://speedy-nodes-nyc.moralis.io/d2355f2c92961a3a4f1ce86f/polygon/mumbai")
+           provider = new ethers.providers.JsonRpcProvider("https://polygon-mumbai.infura.io/v3/16730a405a254c81b8721025f50b815f")
             console.log(provider)
            break;
         default:

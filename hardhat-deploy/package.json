@@ -72,5 +72,9 @@
     "fork:dev": "node ./_scripts.js fork:dev",
     "fork:node": "node ./_scripts.js fork:node",
     "fork:test": "node ./_scripts.js fork:test"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.3.1",
+    "base64-sol": "^1.1.0"
   }
 }
