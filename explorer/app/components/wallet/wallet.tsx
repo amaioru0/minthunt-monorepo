@@ -92,16 +92,16 @@ export const Wallet = observer(function Wallet(props: WalletProps) {
   
 
   const getTreasureChestNFTs = async () => {
-    
     setLoading(true)
     const nfts = [];
     const otherNfts = []
     // const web3 = await getWeb3Instance(settingsStore.selectedNetwork)
     const provider = await getEthersProvider(settingsStore.selectedNetwork)
     const Moralis = await getMoralis(settingsStore.selectedNetwork);
-    const options = { chain: settingsStore.selectedNetwork, address: connector.accounts[0] };
+    const options = { chain: settingsStore.selectedNetwork == "matic-testnet" ? "mumbai" : settingsStore.selectedNetwork, address: connector.accounts[0] };
     const testnetNFTs = await Moralis.Web3API.account.getNFTs(options);
-    
+    console.log("here")
+
     console.log(testnetNFTs)
 
 
@@ -114,7 +114,6 @@ export const Wallet = observer(function Wallet(props: WalletProps) {
           let uri; // raw response of uri function
           let metadata; // parsed uri
           let imageUri // image uri
-          
           if(item.contract_type === "ERC721") {
             try {
               uri = await contract.tokenURI(item.token_id)

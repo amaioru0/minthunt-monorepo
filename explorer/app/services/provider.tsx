@@ -19,12 +19,20 @@ const provider = ethers.getDefaultProvider("kovan", {
 });
 
 export const getEthersProvider = async (network) => {
-    const provider = ethers.getDefaultProvider(network, {
-        etherscan: "Q2HXIWPVIGUTGAH5FHU7CDY4UQA1ND25PP",
-        infura: "bc7ae83f636c4d5fb7d227283cc2918c",
-        alchemy: "k2VwGnvtKNZmjscjokIic_sO8d6YDUrU",
-        pocket: "6124eb55f6d1650033d7dbbf"
-    });
+    let provider;
+    switch(network) {
+        case "matic-testnet":
+           provider = new ethers.providers.JsonRpcProvider("https://speedy-nodes-nyc.moralis.io/d2355f2c92961a3a4f1ce86f/polygon/mumbai")
+            console.log(provider)
+           break;
+        default:
+         provider = ethers.getDefaultProvider(network, {
+            etherscan: "Q2HXIWPVIGUTGAH5FHU7CDY4UQA1ND25PP",
+            infura: "bc7ae83f636c4d5fb7d227283cc2918c",
+            alchemy: "k2VwGnvtKNZmjscjokIic_sO8d6YDUrU",
+            pocket: "6124eb55f6d1650033d7dbbf"
+        });
+        }
     return provider;
 }
 

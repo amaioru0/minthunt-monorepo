@@ -13,7 +13,7 @@ export const getMoralis = async (network) => {
         case "kovan":
           Moralis.serverURL = KOVAN_SERVER;
           break;
-        case "mumbai":
+        case "matic-testnet":
           Moralis.serverURL = MUMBAI_SERVER;
           break;
         default:
