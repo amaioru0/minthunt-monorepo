@@ -1,1 +1,1 @@
-# MintHunt.io / NFT HACK 2022
+# MintHunt.io Explorer  
