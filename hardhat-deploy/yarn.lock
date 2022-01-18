@@ -4225,6 +4225,11 @@ hardhat-deploy@^0.9.23:
     murmur-128 "^0.2.1"
     qs "^6.9.4"
 
+hardhat-erc1820@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/hardhat-erc1820/-/hardhat-erc1820-0.1.0.tgz#9bc5a2acc9c9b84f3be9041c25fa349010cd3192"
+  integrity sha512-oQxe7Li8Ev6/Gs6PMcH9+IjaXS+xh6HyPBTGnlRVG4yfmkYF7ajVvzxfYY/FGlM9/j+F2uZjRhxsc//qisC82A==
+
 hardhat-gas-reporter@^1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/hardhat-gas-reporter/-/hardhat-gas-reporter-1.0.6.tgz#699bc0bb96e8c962c7f136a1c1f29cd3c32d569e"

@@ -15,25 +15,27 @@ async function main() {
   const verifierFile = await fs.readFile(`${basePath}/Verifier.json`, 'utf8');
   const verifierAddress = JSON.parse(verifierFile).address
 
-  // setVerifier on TreasureChest
+  const treasureChestFile = await fs.readFile(`${basePath}/TreasureChest.json`, 'utf8');
+  const treasureChestAddress = JSON.parse(treasureChestFile).address
+
+
+  // setVerifier on EgyLove
   await execute(
-    'TreasureChest',
+    'EgyLove',
     {from: deployer, log: true},
-    'setVerifierAddress',
-    `${verifierAddress}`
+    'setApprovalForAll',
+    `${verifierAddress}`,
+    true
   );
 
-    // setVerifier on GemTreasure
-    await execute(
-      'GemTreasure',
-      {from: deployer, log: true},
-      'setVerifierAddress',
-      `${verifierAddress}`
-    );
-  
+  await execute(
+    'EgyLove',
+    {from: deployer, log: true},
+    'setApprovalForAll',
+    `${treasureChestAddress}`,
+    true
+  );
 }
-
-
 
 main()
   .then(() => process.exit(0))

@@ -44,7 +44,7 @@ contract TreasureMap is ERC721, VRFConsumerBase, Ownable, ERC721Enumerable {
     }
 
     function withdraw() external onlyOwner {
-        address payable _owner = payable(owner());ß
+        address payable _owner = payable(owner());
         _owner.transfer(address(this).balance);
      }
 

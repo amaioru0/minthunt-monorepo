@@ -12,28 +12,29 @@ async function main() {
 
   const basePath = path.join(__dirname, '../', 'deployments', network)
 
-  const verifierFile = await fs.readFile(`${basePath}/Verifier.json`, 'utf8');
-  const verifierAddress = JSON.parse(verifierFile).address
+  const egyLoveFile = await fs.readFile(`${basePath}/EgyLove.json`, 'utf8');
+  const egyLoveAddress = JSON.parse(egyLoveFile).address
 
-  // setVerifier on TreasureChest
+  // addtreasure on EgyLove
   await execute(
     'TreasureChest',
     {from: deployer, log: true},
-    'setVerifierAddress',
-    `${verifierAddress}`
+    'addTreasure',
+    egyLoveAddress, // treasure address
+    100000000, // ammount
+    0 // id
   );
 
-    // setVerifier on GemTreasure
-    await execute(
-      'GemTreasure',
-      {from: deployer, log: true},
-      'setVerifierAddress',
-      `${verifierAddress}`
-    );
-  
+  await execute(
+    'TreasureChest',
+    {from: deployer, log: true},
+    'addTreasure',
+    egyLoveAddress, // treasure address
+    200000000, // ammount
+    1 // id
+  );
+
 }
-
-
 
 main()
   .then(() => process.exit(0))
